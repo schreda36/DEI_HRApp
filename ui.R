@@ -8,7 +8,7 @@ shinyUI(navbarPage("Navbar!",
                                                      c("Salary"="Salary", "Total Compensation"="TotalCompensation")
                                         ),
                                         checkboxGroupInput("criteria", "Data Criteria:",
-                                                    c("Title" = "JobTitle",
+                                                    c("Job Title" = "JobTitle",
                                                       "Years of School" = "YrsSchool",
                                                       "Years of Experience" = "YrsExp",
                                                       "Prior Performance" = "Performance",
@@ -16,14 +16,14 @@ shinyUI(navbarPage("Navbar!",
                                                       "Location" = "Location",
                                                       "Organization" = "Organization",
                                                       "Manager" = "Manager"
-                                                      )),
+                                                      ),selected="JobTitle"),
                                         radioButtons("FactorType", "Factor:",
                                                      c("Gender"="Gender", "Ethnicity"="e")
                                         ),
-                                        selectInput("variance", "Allowable Variance:",
-                                                    c("< 2.5%" = ".025",
-                                                      "< 5%" = ".05",
-                                                      "< 10%" = ".1"
+                                        selectInput("variance", "Display Difference > than:",
+                                                    c("+/-10%" = ".1",
+                                                      "+/-5%" = ".05",
+                                                      "+/-2.5%" = ".025"
                                                     )),
                                         actionButton("goButton", "Go!")
                                   ),
@@ -32,7 +32,14 @@ shinyUI(navbarPage("Navbar!",
                                                     tabPanel("Table", dataTableOutput("table")),
                                                     #tabPanel("Table", textOutput("table")),
                                                     tabPanel("Summary", verbatimTextOutput("summary")), 
-                                                    tabPanel("Plot", plotOutput("plot"))
+                                                    tabPanel("Plot", 
+                                                             fluidRow(column(width = 12,
+                                                                   plotOutput("plot", click = "plot_click")
+                                                                   )),
+                                                             fluidRow(column(width = 5,
+                                                                   verbatimTextOutput("click_info")
+                                                                   ))
+                                                            )
                                                     
                                         )
                                   )

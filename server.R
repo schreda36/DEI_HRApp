@@ -1,5 +1,5 @@
 
-suppressPackageStartupMessages(c(library(tm),library(shiny),library(dplyr),library(plyr),library(stringr),library(ggplot2)))
+suppressPackageStartupMessages(c(library(tm),library(shiny),library(dplyr),library(plyr),library(scales),library(stringr),library(ggplot2)))
 
 #source("global.R")
 setwd("C:/Users/schre/DataScience/wd/EEO/app")
@@ -52,45 +52,73 @@ shinyServer(function(input, output) {
             }
       }, height=300)
       
+      processData <- reactive({
+            ds <- dataset() #dataSubset
+            
+            #higher allowed variance should produce fewer results
+            AllowedVariance <- as.numeric(input$variance)
+            
+            #get averages by Criteria for each Factor
+            if(input$DataType=="Salary") {
+                  ds.factor.avg <- aggregate(CurrentSalary ~ Gender + JobTitle, data=ds, mean)
+                  ds.factor.avg <- data.frame(ds.factor.avg)
+                  
+                  ds.factor.F <- ddply(ds.factor.avg,.(JobTitle),
+                                       summarise,meanF = mean(CurrentSalary[Gender == "F"]))
+                  
+                  ds.factor.M <- ddply(ds.factor.avg,.(JobTitle),
+                                       summarise,meanM = mean(CurrentSalary[Gender == "M"]))
+            }
+            else if(input$DataType=="TotalCompensation") {
+                  ds.factor.avg <- aggregate(TotalCompensation ~ Gender + JobTitle, data=ds, mean)
+                  ds.factor.avg <- data.frame(ds.factor.avg)
+                  
+                  ds.factor.M <- ddply(ds.factor.avg,.(JobTitle),
+                                       summarise,meanM = mean(TotalCompensation[Gender == "M"]))
+                  
+                  ds.factor.F <- ddply(ds.factor.avg,.(JobTitle),
+                                       summarise,meanF = mean(TotalCompensation[Gender == "F"]))
+                  
+            }
+            
+            #merge and get subset of data filter by allowed variance
+            ds.factor <- merge(ds.factor.F, ds.factor.M)
+            diffPct <- (ds.factor$meanM-ds.factor$meanF)/ds.factor$meanM
+            ds.factor$difference <- diffPct
+            ds.factor.var <- filter(ds.factor, abs(diffPct)>AllowedVariance)
+            
+      })
+      
       output$table <- renderDataTable({
             if (input$goButton > 0) {
-                  dCols <- c("Gender", dT(), "JobTitle")
-                  ds <- dataset() #dataSubset
-                  #higher allowed variance should produce fewer results
-                  AllowedVariance <- as.numeric(input$variance)
-      
-                  #get means by Criteria for each Factor
+
+                  ds.factor.var <- processData()
+                  ds.factor.var$difference <- percent(ds.factor.var$difference)
+                  
                   if(input$DataType=="Salary") {
-                        ds.factor.avg <- aggregate(CurrentSalary ~ Gender + JobTitle, data=ds, mean)
-                        ds.factor.avg <- data.frame(ds.factor.avg)
-                        
-                        ds.factor.F <- ddply(ds.factor.avg,.(JobTitle),
-                                             summarise,meanF = mean(CurrentSalary[Gender == "F"]))
-                        
-                        ds.factor.M <- ddply(ds.factor.avg,.(JobTitle),
-                                             summarise,meanM = mean(CurrentSalary[Gender == "M"]))
+                        colnames(ds.factor.var) <- c("Job Title","Avg Salary (male)","Avg Salary (female)","% Difference")
                   }
                   else if(input$DataType=="TotalCompensation") {
-                        ds.factor.avg <- aggregate(TotalCompensation ~ Gender + JobTitle, data=ds, mean)
-                        ds.factor.avg <- data.frame(ds.factor.avg)
-                        
-                        ds.factor.F <- ddply(ds.factor.avg,.(JobTitle),
-                                             summarise,meanF = mean(TotalCompensation[Gender == "F"]))
-                        
-                        ds.factor.M <- ddply(ds.factor.avg,.(JobTitle),
-                                             summarise,meanM = mean(TotalCompensation[Gender == "M"]))
+                        colnames(ds.factor.var) <- c("Job Title","Avg TComp (male)","Avg TComp (female)","% Difference")
                   }
-                        
-                  
-            
-                  ds.factor <- merge(ds.factor.F, ds.factor.M)
-      
-                  #get subset of data filter by allowed variance
-                  difference <- (ds.factor$meanM-ds.factor$meanF)/ds.factor$meanM
-                  ds.factor.var <- filter(ds.factor, difference>AllowedVariance)
                   ds.factor.var
             }
             
       })
       
+      output$plot <- renderPlot({
+            ds.factor.var <- processData() 
+            #hist(as.vector(ds.factor.var$difference))
+            p <- ggplot(ds.factor.var, aes(JobTitle, difference, size=6))
+            p <- p + geom_point()
+            p <- p + labs(title =" New title", x = "Job Titles", y = "% Difference") 
+            #p <- p + geom_text(aes(label = JobTitle))
+            #p <- qplot(ds.factor.var$JobTitle, ds.factor.var$difference, data=ds.factor.var)
+            p 
+      })
+      
+      output$click_info <- renderPrint({
+            cat("input$plot_click:\n")
+            str(input$plot_click)
+      })
 })
