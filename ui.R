@@ -9,8 +9,8 @@ shinyUI(navbarPage("Navbar!",
                                         ),
                                         checkboxGroupInput("criteria", "Data Criteria:",
                                                            c("Job Title" = "JobTitle",
+                                                             "Years of Experience" = "YrsofExperience",
                                                              "Years of School" = "YrsSchool",
-                                                             "Years of Experience" = "YrsExp",
                                                              "Prior Performance" = "Performance",
                                                              "Country" = "Country",
                                                              "Location" = "Location",
@@ -34,7 +34,7 @@ shinyUI(navbarPage("Navbar!",
                                                     tabPanel("Summary", verbatimTextOutput("summary")), 
                                                     tabPanel("Plot", 
                                                              fluidRow(column(width = 12,
-                                                                             plotOutput("plot", click = "plot_click", brush = "plot_brush")
+                                                                             plotOutput("plot", click = "plot_click", brush=brushOpts(id="plot_brush",resetOnNew=F))
                                                              )),
                                                              fluidRow(column(width = 12,
                                                                              verbatimTextOutput("click_info")
