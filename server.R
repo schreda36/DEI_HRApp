@@ -25,7 +25,7 @@ shinyServer(function(input, output) {
       
       dataset <- reactive({
             ds <- read.csv("./data/SampleData.csv")
-            dCols <- c("Gender", dT(), dC())
+            dCols <- c(dT(), "Gender", dC())
             dataSubset <- subset(ds, select=dCols)
             dataSubset
       })
@@ -35,35 +35,32 @@ shinyServer(function(input, output) {
       #             "JobTitle"
       # })
       
+      dat <- data.frame(dataSubset)
+      
+      my.fun <- { function(df, crit1, meanX) { 
+             ddply(df, eval(crit1), function(d) c(SalaryMean=mean(d[[meanX]])))
+             }
+      }
+       
       processData <- reactive({
-            ds <- dataset() #dataSubset
+            ds <- data.frame(dataset()) #dataSubset
             
             #higher allowed variance should produce fewer results
             AllowedVariance <- as.numeric(input$variance)
             
-            dc <- c("JobTitle","YrsOfExperience") #dC() #as.character(dataCriteria())
-            
+            #crit<-c('Gender','JobTitle','YrsOfExperience')
+            crit<-c('Gender','JobTitle')
+
             #get averages by Criteria for each Factor
             if(input$DataType=="Salary") {
-                  ds.factor.avg <- aggregate(CurrentSalary ~ Gender + JobTitle, data=ds, mean)
-                  #ds.factor.avg <- aggregate(CurrentSalary ~ Gender + JobTitle + YrsOfExperience, data=ds, mean)
-                  #doesn't appear to work ds.factor.avg <- aggregate(x=ds, by=list(dc), FUN=mean)
-                  #doesn't appear to work ds.factor.avg <- aggregate(CurrentSalary ~ ., data=ds, mean)
-                  ds.factor.avg <- data.frame(ds.factor.avg) #needed?
+                  #works, but hard-coded: ds.factor.avg <- aggregate(CurrentSalary ~ Gender + JobTitle, data=ds, mean)
+                  ds.factor.avg <- my.fun(ds, crit, 'CurrentSalary')
+  
+                  ds.factor.M <- filter(ds.factor.avg,Gender=='M')
+                  colnames(ds.factor.M) <- c("Gender","JobTitle","meanM")
+                  ds.factor.F <- filter(ds.factor.avg,Gender=='F')
+                  colnames(ds.factor.F) <- c("Gender","JobTitle","meanF")
                   
-                  #'.(JobTitle)' allows JobTitle not to require quotes
-                  #below is good for Gender+JobTitle 
-                  ds.factor.M <- ddply(ds.factor.avg,.(JobTitle),
-                                       summarise,meanM = mean(CurrentSalary[Gender == "M"]))
-                  ds.factor.F <- ddply(ds.factor.avg,.(JobTitle),
-                                         summarise,meanF = mean(CurrentSalary[Gender == "F"]))
-      
-                  #ds.factor.M <- ddply(ds.factor.avg,eval(dc),
-                  #                      summarise,meanM = mean(CurrentSalary[Gender == "M"]))
-                  
-                  #ds.factor.F <- ddply(ds.factor.avg,eval(dc),
-                  #                      summarise,meanF = mean(CurrentSalary[Gender == "F"]))
-
             }
             else if(input$DataType=="TotalCompensation") {
                   ds.factor.avg <- aggregate(TotalCompensation ~ Gender + JobTitle, data=ds, mean)
@@ -79,14 +76,16 @@ shinyServer(function(input, output) {
             }
             
             #merge and get subset of data filter by allowed variance
-            ds.factor <- merge(ds.factor.F, ds.factor.M)
+            ds.factor.M<-ds.factor.M[,2:3] #remove Gender
+            ds.factor.F<-ds.factor.F[,2:3]
+            ds.factor <- merge(ds.factor.F, ds.factor.M, by=c("JobTitle"))
             diffPct <- (ds.factor$meanM-ds.factor$meanF)/ds.factor$meanM
             ds.factor$difference <- diffPct
             ds.factor.var <- filter(ds.factor, abs(diffPct)>AllowedVariance)
             
       })
       
-      output$table <- renderDataTable({
+            output$table <- renderDataTable({
             if (input$goButton > 0) {
                   
                   ds.factor.var <- processData()
@@ -98,7 +97,7 @@ shinyServer(function(input, output) {
                   else if(input$DataType=="TotalCompensation") {
                         colnames(ds.factor.var) <- c("Job Title","Avg TComp (male)","Avg TComp (female)","% Difference")
                   }
-                  
+
                   if(input$criteria=="YrsOfExperience") {
                         colnames(ds.factor.var) <- c("Job Title","YrsOfExperience","Avg Salary (male)","Avg Salary (female)","% Difference")
                   }
