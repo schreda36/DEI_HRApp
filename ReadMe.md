@@ -10,16 +10,21 @@ User may select "Factor", which provides a breakdown of the data analyzed. Facto
 
 - Gender (Factor 1)
 - Ethnicity (Factor 2)
-- Age (Factor 3)
->>>>>>>>>>>>>probably need to make this a multi-select
+- Religion (Factor 3)
+- Age (Factor 4)
+>>>>>>>>>>>>>may need to make this a multi-select
 
-User may also select criteria of the analyzed data. Selecting criteria will add elements to consider in the analyzed data. Criteria may be any of the following:
+User may also select criteria of the analyzed data. Selecting criteria will determine how the data is grouped. For instance, to compare salaries (data type) between men and women (data factor) one would typically group employees by their Title and Years of School or Years of Experience. Global organizations may also choose Country, so employees  Criteria may be any of the following:
 
 - Title
 - Years of School
 - Years of Experience
+
+
+Further breakdown by "location"? Perhaps add
 - Country
 - Organization (Business Unit, Division, and/or Department)
+
 - Manager
 
 Data

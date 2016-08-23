@@ -1,32 +1,41 @@
-library(markdown)
+#library(markdown)
 
 shinyUI(navbarPage("Navbar!",
                    tabPanel("Factor",
                             sidebarLayout(
                                   sidebarPanel(
-                                        radioButtons("DataType", "Data to Analyze:",
+                                        selectInput("DataType", "Data to analyze:",
                                                      c("Salary"="Salary", "Total Compensation"="TotalCompensation")
                                         ),
-                                        checkboxGroupInput("criteria", "Data Criteria:",
-                                                           c("Job Title" = "JobTitle",
-                                                             "Years of Experience" = "YrsofExperience",
-                                                             "Years of School" = "YrsSchool",
-                                                             "Prior Performance" = "Performance",
-                                                             "Country" = "Country",
-                                                             "Location" = "Location",
-                                                             "Organization" = "Organization",
-                                                             "Manager" = "Manager"
-                                                           ),selected="JobTitle"),
-                                        radioButtons("FactorType", "Factor:",
-                                                     c("Gender"="Gender", "Ethnicity"="e")
+                                        selectInput("FactorType", "Determining factor:",
+                                                    c("Gender"="Gender", "Ethnicity"="Ethnicity",
+                                                      "Religion"="Religion","Age"="Age","Factor X"="FactorX")
                                         ),
-                                        selectInput("variance", "Display Difference > than:",
-                                                    c("+/-10%" = ".1",
-                                                      "+/-5%" = ".05",
-                                                      "+/-2.5%" = ".025"
-                                                    )),
+                                        checkboxGroupInput("GroupBy", "Group people by:",
+                                                           c("Job Title" = "JobTitle",
+                                                             "Years of Experience" = "YrsOfExperience",
+                                                             "Years of School" = "YrsSchool",
+                                                             "Prior Performance" = "Performance"
+                                                           ),selected="JobTitle"),
+                                        # sliderInput("variance", "Display differences > than:",
+                                        #             min=-15.0,max=15.0,round=TRUE,
+                                        #             step = .1, post="%",
+                                        #             value=c(-10,10),dragRange=TRUE
+                                        #             ),
+                                        selectInput("FilterType", "Filter by:",
+                                                    c("Country" = "Country",
+                                                      "Location" = "Location",
+                                                      "Organization" = "Organization",
+                                                      "Manager" = "Manager")
+                                        ),
+                                        selectizeInput("Filter", "", choices = "All"),
+                                        sliderInput("variance", "Display differences > than +/-:",
+                                                    min=2.5,max=20.0,round=TRUE,
+                                                    step = .5, post="%",
+                                                    value=10, width=200
+                                        ),
                                         actionButton("goButton", "Go!")
-                                  ),
+                                  ,width=3),
                                   mainPanel(
                                         tabsetPanel(type = "tabs", 
                                                     tabPanel("Table", dataTableOutput("table")),
@@ -42,7 +51,7 @@ shinyUI(navbarPage("Navbar!",
                                                     )
                                                     
                                         )
-                                  )
+                                  ,width=9)
                             )
                    )
                    # ,tabPanel("Summary",

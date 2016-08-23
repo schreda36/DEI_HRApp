@@ -3,7 +3,12 @@ suppressPackageStartupMessages(c(library(tm),library(shiny),library(dplyr),libra
 #source("global.R")
 setwd("C:/Users/schre/DataScience/wd/EEO/app")
 
-shinyServer(function(input, output) {
+ds <- read.csv("./data/SampleData.csv")
+unique.country <- sort(unique(trimws(ds$Country)))
+
+shinyServer(function(input, output, session) {
+      
+      updateSelectizeInput(session, 'Filter', choices = as.character(unique.country), server = TRUE)
       
       #Data Type
       dT <- reactive ({
@@ -13,32 +18,71 @@ shinyServer(function(input, output) {
                   "TotalCompensation"
       })
       
-      #Data Criteria
+      #Data Determining Factor
+      dFact <- reactive ({
+            dFact <- NULL
+            if(input$FactorType=="Gender"){
+                  dFact <- c("Gender") }
+            if(input$FactorType=="Ethnicity") {
+                  dFact <- c("Ethnicity") }
+            dFact
+      })
+      
+      #Data GroupBy
       dC <- reactive ({
             dC <- NULL
-            if(input$criteria=="JobTitle"){
+            if(input$GroupBy=="JobTitle"){
                   dC <- c("JobTitle") }
-            if(input$criteria=="YrsOfExperience") {
-                  dC <- c("JobTitle", "YrsOfExperience") }
+            if(input$GroupBy=="YrsOfExperience") {
+                  dC <- append(dC, "YrsOfExperience") }
             dC
       })
       
+      #Data Filter
+      dFilt <- reactive ({
+            dFilt <- NULL
+            if(input$FilterType=="Country") {
+                  if(input$Filter=="USA"){
+                        dFilt <- c("USA") }
+                  else if(input$Filter=="ESP") {
+                        dFilt <- c("ESP") }
+            }
+            dFilt
+      })
+      
+      #Table Header
+      tH <- reactive ({
+            tH <- NULL
+            
+            if(input$GroupBy=="JobTitle"){
+                  tH <- c("Job Title") }
+            if(input$GroupBy=="YrsOfExperience") {
+                  tH <- append(tH, "Yrs of Experience") }
+            
+            if(input$DataType=="Salary") {
+                  tH <- append(tH, "Avg Salary (male)")
+                  tH <- append(tH, "Avg Salary (female)") }
+            else if(input$DataType=="TotalCompensation") {
+                  tH <- append(tH, "Avg TComp (male)")
+                  tH <- append(tH, "Avg TComp (female)")
+            }
+            
+            tH <- append(tH, "% Difference")
+            tH
+      })
+      
+      #grab data and select data type, factor and GroupBy columns
       dataset <- reactive({
             ds <- read.csv("./data/SampleData.csv")
-            dCols <- c(dT(), "Gender", dC())
-            dataSubset <- subset(ds, select=dCols)
+            ds <- ds[ds[input$FilterType]==eval(dFilt()),] #Filter
+            dCols <- c(dT(), dFact(), dC()) #data type, factor and group by columns
+            dataSubset <- subset(ds, select=dCols) #keep only columns of interest
+            #dataSubset <- subset(ds, select=c("CurrentSalary","Gender","JobTitle","YrsOfExperience"))
             dataSubset
       })
 
-      # dataCriteria <- reactive({
-      #       #if(input$criteria=="JobTitle")
-      #             "JobTitle"
-      # })
-      
-      dat <- data.frame(dataSubset)
-      
-      my.fun <- { function(df, crit1, meanX) { 
-             ddply(df, eval(crit1), function(d) c(SalaryMean=mean(d[[meanX]])))
+      my.fun <- { function(df, GroupBy, meanX) { 
+             ddply(df, eval(GroupBy), function(d) c(SalaryMean=mean(d[[meanX]])))
              }
       }
        
@@ -46,61 +90,41 @@ shinyServer(function(input, output) {
             ds <- data.frame(dataset()) #dataSubset
             
             #higher allowed variance should produce fewer results
-            AllowedVariance <- as.numeric(input$variance)
+            allowedVariance <- as.numeric(input$variance)/100
             
-            #crit<-c('Gender','JobTitle','YrsOfExperience')
-            crit<-c('Gender','JobTitle')
-
-            #get averages by Criteria for each Factor
-            if(input$DataType=="Salary") {
-                  #works, but hard-coded: ds.factor.avg <- aggregate(CurrentSalary ~ Gender + JobTitle, data=ds, mean)
-                  ds.factor.avg <- my.fun(ds, crit, 'CurrentSalary')
-  
-                  ds.factor.M <- filter(ds.factor.avg,Gender=='M')
-                  colnames(ds.factor.M) <- c("Gender","JobTitle","meanM")
-                  ds.factor.F <- filter(ds.factor.avg,Gender=='F')
-                  colnames(ds.factor.F) <- c("Gender","JobTitle","meanF")
-                  
-            }
-            else if(input$DataType=="TotalCompensation") {
-                  ds.factor.avg <- aggregate(TotalCompensation ~ Gender + JobTitle, data=ds, mean)
-                  #ds.factor.avg <- aggregate(TotalCompensation ~ ., data=ds, mean)
-                  ds.factor.avg <- data.frame(ds.factor.avg)
-                  
-                  ds.factor.M <- ddply(ds.factor.avg,.(JobTitle),
-                                       summarise,meanM = mean(TotalCompensation[Gender == "M"]))
-                  
-                  ds.factor.F <- ddply(ds.factor.avg,.(JobTitle),
-                                       summarise,meanF = mean(TotalCompensation[Gender == "F"]))
-                  
-            }
+            crit <- c(dFact(), dC()) #add factor + GroupBy
+            
+            #get mean/average by by factor + GroupBy
+            ds.factor.avg <- my.fun(ds, crit, dT())
+            
+            ds.factor.M <- filter(ds.factor.avg,Gender=='M')
+            colnames(ds.factor.M) <- c("Gender","JobTitle","meanM")
+            #colnames(ds.factor.M) <- c("Gender","JobTitle","YrsOfExperience","meanM")
+            ds.factor.F <- filter(ds.factor.avg,Gender=='F')
+            colnames(ds.factor.F) <- c("Gender","JobTitle","meanF")
+            #colnames(ds.factor.F) <- c("Gender","JobTitle","YrsOfExperience","meanF")
             
             #merge and get subset of data filter by allowed variance
             ds.factor.M<-ds.factor.M[,2:3] #remove Gender
             ds.factor.F<-ds.factor.F[,2:3]
-            ds.factor <- merge(ds.factor.F, ds.factor.M, by=c("JobTitle"))
+            #ds.factor <- merge(ds.factor.F, ds.factor.M, by=c("JobTitle","YrsOfExperience"))
+            ds.factor <- merge(ds.factor.M, ds.factor.F, by=c("JobTitle"))
             diffPct <- (ds.factor$meanM-ds.factor$meanF)/ds.factor$meanM
             ds.factor$difference <- diffPct
-            ds.factor.var <- filter(ds.factor, abs(diffPct)>AllowedVariance)
+            ds.factor.var <- filter(ds.factor, abs(diffPct)>allowedVariance)
             
       })
       
-            output$table <- renderDataTable({
+      output$table <- renderDataTable({
+            validate(need(input$GroupBy != "", "\n\nPlease select a value for 'Group people by'"))
+            validate(need(input$Filter != "", "\n\nPlease select a value for 'Country'"))
+            
             if (input$goButton > 0) {
                   
                   ds.factor.var <- processData()
                   ds.factor.var$difference <- ds.factor.var$difference*100
                   
-                  if(input$DataType=="Salary") {
-                        colnames(ds.factor.var) <- c("Job Title","Avg Salary (male)","Avg Salary (female)","% Difference")
-                  }
-                  else if(input$DataType=="TotalCompensation") {
-                        colnames(ds.factor.var) <- c("Job Title","Avg TComp (male)","Avg TComp (female)","% Difference")
-                  }
-
-                  if(input$criteria=="YrsOfExperience") {
-                        colnames(ds.factor.var) <- c("Job Title","YrsOfExperience","Avg Salary (male)","Avg Salary (female)","% Difference")
-                  }
+                  colnames(ds.factor.var) <- tH()
                   
                   ds.factor.var
             }
@@ -110,6 +134,9 @@ shinyServer(function(input, output) {
       plot.range <- reactiveValues(x = NULL, y = NULL)
       
       output$plot <- renderPlot({
+            
+            validate(need(input$GroupBy != "", "\n\nPlease select a value for 'Group people by'"))
+            
             ds.factor.var <- processData() 
             ds.factor.var$difference <- ds.factor.var$difference*100
             
@@ -118,7 +145,6 @@ shinyServer(function(input, output) {
             p <- p + scale_color_gradientn(colours = c("red","yellow","#11BB11","yellow","red"))
             p <- p + guides(color=guide_legend(title="% Difference"))
             p <- p + theme(axis.text.x = element_text(angle = 60, hjust = 1))
-            #p <- p + coord_cartesian(xlim = plot.range$x, ylim = plot.range$y)
             p <- p + labs(title =" ", x = "", y = "% Difference") 
             
             p
@@ -128,29 +154,23 @@ shinyServer(function(input, output) {
             
             ds.factor.var <- data.frame(processData())
             ds.factor.var$difference <- round(ds.factor.var$difference*100,2)
-            
-            brush <- input$plot_brush
+
             #for ggplot where x is a factor xmin/xmax act like row numbers
             #on the otherhand ymin/ymax will equal the y (% Difference) values
-            plot.range$x <- c(brush$xmin:brush$xmax) 
+            validate(need(input$plot_brush!="", "Click and drag mouse over data-points for more information."))
+            brush <- input$plot_brush
+            plot.range$x <- c(brush$xmin:brush$xmax)
             ymin <- brush$ymin
             ymax <- brush$ymax
             
             cat("Click and drag mouse over data-points for more information.\n")
-            #dpoint <- brushedPoints(ds.factor.var, input$plot_brush, xvar ="Job Title",yvar ="% Difference")
-            #dpoint <- nearPoints(ds.factor.var, input$plot_click, threshold=100, xvar="Job Title",yvar="% Difference")
             ds.factor.var <- ds.factor.var[round(plot.range$x),]
             ds.factor.var <- subset(ds.factor.var, round(ds.factor.var$difference,2)>as.numeric(ymin) & round(ds.factor.var$difference,2)<as.numeric(ymax))
             
             if (nrow(ds.factor.var) == 0)
-                  return()
+                  return() #return NULL
             else {
-                  if(input$DataType=="Salary") {
-                         colnames(ds.factor.var) <- c("Job Title","Avg Salary (M)","Avg Salary (F)","% Difference")
-                  }
-                  else if(input$DataType=="TotalCompensation") {
-                         colnames(ds.factor.var) <- c("Job Title","Avg TComp (M)","Avg TComp (F)","% Difference")
-                  }
+                  colnames(ds.factor.var) <- tH()
                   ds.factor.var
             }
 
