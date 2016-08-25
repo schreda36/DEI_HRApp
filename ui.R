@@ -1,13 +1,34 @@
 #library(markdown)
 
-shinyUI(navbarPage("Navbar!",
+shinyUI(
+      navbarPage("Navbar!",
+                 
                    tabPanel("Factor",
+                            
+                            tags$head(
+                                  tags$style(HTML("
+                                          
+                                          h1 {  font-family: 'Calibri', cursive;
+                                                font-weight: 500;
+                                                line-height: 1.1;
+                                                color: #48ca3b; }
+                                                  
+                                          body { background-color: #fff; }
+
+                                          .selectize-control { margin-top: 1px }
+                                          .selectize-input { font-size: 14px; }
+                                          .selectize-control.label { font-size: 22px; }
+                                          #.selectize-dropdown-content {max-height: 400px; }
+                                          #.selectize-control.single{ display: table-cell; text-align: center; vertical-align: middle; } .form-group { display: table-row;}
+                                                  
+                                    "))
+                            ),
                             sidebarLayout(
                                   sidebarPanel(
-                                        selectInput("DataType", "Data to analyze:",
+                                        selectizeInput("DataType", "Data to analyze:",
                                                      c("Salary"="Salary", "Total Compensation"="TotalCompensation")
                                         ),
-                                        selectInput("FactorType", "Determining factor:",
+                                        selectizeInput("FactorType", "Determining factor:",
                                                     c("Gender"="Gender", "Ethnicity"="Ethnicity",
                                                       "Religion"="Religion","Age"="Age","Factor X"="FactorX")
                                         ),
@@ -17,12 +38,7 @@ shinyUI(navbarPage("Navbar!",
                                                              "Years of School" = "YrsSchool",
                                                              "Prior Performance" = "Performance"
                                                            ),selected="JobTitle"),
-                                        # sliderInput("variance", "Display differences > than:",
-                                        #             min=-15.0,max=15.0,round=TRUE,
-                                        #             step = .1, post="%",
-                                        #             value=c(-10,10),dragRange=TRUE
-                                        #             ),
-                                        selectInput("FilterType", "Filter by:",
+                                        selectizeInput("FilterType", "Filter by:",
                                                     c("Country" = "Country",
                                                       "Location" = "Location",
                                                       "Organization" = "Organization",
@@ -34,7 +50,10 @@ shinyUI(navbarPage("Navbar!",
                                                     step = .5, post="%",
                                                     value=10, width=200
                                         ),
-                                        actionButton("goButton", "Go!")
+                                        actionButton("goButton", "Go!"),
+                                        radioButtons("downloadType", "Download file type:",
+                                                    choices = c("csv", "pdf", "tsv")),
+                                        downloadButton('downloadData', 'Download')
                                   ,width=3),
                                   mainPanel(
                                         tabsetPanel(type = "tabs", 

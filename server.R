@@ -1,14 +1,20 @@
-suppressPackageStartupMessages(c(library(tm),library(shiny),library(dplyr),library(plyr),library(scales),library(stringr),library(ggplot2)))
+suppressPackageStartupMessages(c(library(shiny),library(tm),library(dplyr),library(plyr),library(scales),library(stringr),library(ggplot2)))
 
 #source("global.R")
 setwd("C:/Users/schre/DataScience/wd/EEO/app")
 
-ds <- read.csv("./data/SampleData.csv")
-unique.country <- sort(unique(trimws(ds$Country)))
 
 shinyServer(function(input, output, session) {
       
-      updateSelectizeInput(session, 'Filter', choices = as.character(unique.country), server = TRUE)
+      filterChoice <- reactive ({
+             ds <- read.csv("./data/SampleData.csv")
+             unique.filter <- sort(unique(trimws(ds[[input$FilterType]])))
+      })
+      
+      #updateSelectizeInput(session, 'Filter', choices = as.character(filterChoice), server = TRUE)
+      observe({
+            updateSelectizeInput(session, 'Filter', choices = as.character(filterChoice()), server = TRUE)
+      })
       
       #Data Type
       dT <- reactive ({
@@ -116,6 +122,10 @@ shinyServer(function(input, output, session) {
       })
       
       output$table <- renderDataTable({
+            dataOutputTable()
+      })
+      
+      dataOutputTable <- reactive({      
             validate(need(input$GroupBy != "", "\n\nPlease select a value for 'Group people by'"))
             validate(need(input$Filter != "", "\n\nPlease select a value for 'Country'"))
             
@@ -175,4 +185,36 @@ shinyServer(function(input, output, session) {
             }
 
       })
+      
+      # downloadHandler() takes two arguments both functions.The content function
+      # is passed a filename and it should write out data to that filename.
+      output$downloadData <- downloadHandler(
+            
+            # return a string which will be the filename
+            filename = function() {
+                  paste(input$DataType, input$downloadType, sep = ".") },
+
+            # This function writes data to the file 
+            content = function(file) {
+                  
+                  if(input$downloadType == "pdf") {
+                        # Copy to a temporary directory in case we don't have write permissions
+                        tempReport <- file.path(tempdir(), "report.Rmd")
+                        file.copy("report.Rmd", tempReport, overwrite = TRUE)
+                        
+                        # Knit document, passing in `params` and eval it in a child 
+                        # of the global environment to isolate document from app
+                        params <- list(n = 10)
+                        rmarkdown::render(tempReport, output_file = file,
+                                          params = params,
+                                          envir = new.env(parent = globalenv())
+                        )
+                  }
+                  else {
+                        sep <- switch(input$downloadType, "csv" = ",", "tsv" = "\t")
+                        write.table(dataOutputTable(), file, sep = sep, row.names = FALSE) 
+                  }            
+                  
+            }
+      )
 })
