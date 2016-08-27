@@ -1,17 +1,27 @@
 ---
-title: "Dynamic report"
+title: "=Opportunity!"
 output: pdf_document
 params:
   n: NA
 ---
 
-```{r}
-# The `params` object is available in the document.
+
+```{r echo=FALSE}
+#Your plot and table should display below
+library(ggplot2)
+#plot(params$n)
+#render plot
+ds.factor.var <- data.frame(params$n)
+ds.factor.var$difference <- ds.factor.var$difference*100
+            
+p <- ggplot(ds.factor.var, aes(Job, difference,color=difference))
+p <- p + geom_point()
+p <- p + scale_color_gradientn(colours = c("red","yellow","#11BB11","yellow","red"))
+p <- p + guides(color=guide_legend(title="% Difference"))
+p <- p + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+p <- p + labs(title =" ", x = "", y = "% Difference")
+p
+
+#render table            
 params$n
-```
-
-A plot of `params$n` random points.
-
-```{r}
-plot(rnorm(params$n), rnorm(params$n))
 ```

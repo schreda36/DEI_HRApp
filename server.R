@@ -6,12 +6,13 @@ setwd("C:/Users/schre/DataScience/wd/EEO/app")
 
 shinyServer(function(input, output, session) {
       
+      #---------------- UI Functions -------------------
+      
       filterChoice <- reactive ({
              ds <- read.csv("./data/SampleData.csv")
              unique.filter <- sort(unique(trimws(ds[[input$FilterType]])))
       })
       
-      #updateSelectizeInput(session, 'Filter', choices = as.character(filterChoice), server = TRUE)
       observe({
             updateSelectizeInput(session, 'Filter', choices = as.character(filterChoice()), server = TRUE)
       })
@@ -36,12 +37,16 @@ shinyServer(function(input, output, session) {
       
       #Data GroupBy
       dC <- reactive ({
-            dC <- NULL
-            if(input$GroupBy=="JobTitle"){
-                  dC <- c("JobTitle") }
-            if(input$GroupBy=="YrsOfExperience") {
-                  dC <- append(dC, "YrsOfExperience") }
-            dC
+            # GroupBy columns must be identical to column names in datasource
+            input$GroupBy
+            
+            # previous code only worked for 1 column
+            # dC <- NULL
+            # if(input$GroupBy=="Job"){
+            #       dC <- c("Job") }
+            # if(input$GroupBy=="YrsOfExperience") {
+            #       dC <- append(dC, "YrsOfExperience") }
+            # dC
       })
       
       #Data Filter
@@ -56,14 +61,61 @@ shinyServer(function(input, output, session) {
             dFilt
       })
       
+      #---------------- Process Data -------------------
+
+      #grab data and select data type, factor and GroupBy columns
+      dataset <- reactive({
+            ds <- read.csv("./data/SampleData.csv")
+            ds <- ds[ds[input$FilterType]==eval(dFilt()),] #Filter
+            dCols <- c(dT(), dFact(), dC()) #data type, factor and group by columns
+            dataSubset <- subset(ds, select=dCols) #keep only columns of interest
+            #dataSubset <- subset(ds, select=c("CurrentSalary","Gender","Job","YrsOfExperience"))
+            dataSubset
+      })
+
+      comp.mean <- { function(df, GroupBy, meanX) { 
+             ddply(df, eval(GroupBy), function(d) c(SalaryMean=mean(d[[meanX]])))
+             }
+      }
+       
+      processData <- reactive({
+            ds <- data.frame(dataset()) #dataSubset
+            
+            #higher allowed variance should produce fewer results
+            allowedVariance <- as.numeric(input$variance)/100
+            
+            #get mean/average by Factor + GroupBy criteria
+            criteria <- c(dFact(), dC()) #add Factor + GroupBy
+            ds.factor.avg <- comp.mean(ds, criteria, dT())
+            
+            ds.factor.M <- filter(ds.factor.avg,Gender=='M')
+            colnames(ds.factor.M) <- c("Gender","Job","meanM")
+            #colnames(ds.factor.M) <- c("Gender","Job","YrsOfExperience","meanM")
+            ds.factor.F <- filter(ds.factor.avg,Gender=='F')
+            colnames(ds.factor.F) <- c("Gender","Job","meanF")
+            #colnames(ds.factor.F) <- c("Gender","Job","YrsOfExperience","meanF")
+            
+            #merge and get subset of data filter by allowed variance
+            ds.factor.M<-ds.factor.M[,2:3] #remove Gender
+            ds.factor.F<-ds.factor.F[,2:3]
+            #ds.factor <- merge(ds.factor.F, ds.factor.M, by=c("Job","YrsOfExperience"))
+            ds.factor <- merge(ds.factor.M, ds.factor.F, by=c("Job"))
+            diffPct <- (ds.factor$meanM-ds.factor$meanF)/ds.factor$meanM
+            ds.factor$difference <- diffPct
+            ds.factor.var <- filter(ds.factor, abs(diffPct)>allowedVariance)
+            
+      })
+      
+      #---------------- Render/Download Table and Plots -------------------
+      
       #Table Header
       tH <- reactive ({
             tH <- NULL
             
-            if(input$GroupBy=="JobTitle"){
-                  tH <- c("Job Title") }
-            if(input$GroupBy=="YrsOfExperience") {
-                  tH <- append(tH, "Yrs of Experience") }
+            if("Job" %in% input$GroupBy){
+                  tH <- c("Job") }
+            #if("YrsOfExperience" %in% input$GroupBy) {
+             #     tH <- append(tH, "Yrs of Experience") }
             
             if(input$DataType=="Salary") {
                   tH <- append(tH, "Avg Salary (male)")
@@ -75,50 +127,6 @@ shinyServer(function(input, output, session) {
             
             tH <- append(tH, "% Difference")
             tH
-      })
-      
-      #grab data and select data type, factor and GroupBy columns
-      dataset <- reactive({
-            ds <- read.csv("./data/SampleData.csv")
-            ds <- ds[ds[input$FilterType]==eval(dFilt()),] #Filter
-            dCols <- c(dT(), dFact(), dC()) #data type, factor and group by columns
-            dataSubset <- subset(ds, select=dCols) #keep only columns of interest
-            #dataSubset <- subset(ds, select=c("CurrentSalary","Gender","JobTitle","YrsOfExperience"))
-            dataSubset
-      })
-
-      my.fun <- { function(df, GroupBy, meanX) { 
-             ddply(df, eval(GroupBy), function(d) c(SalaryMean=mean(d[[meanX]])))
-             }
-      }
-       
-      processData <- reactive({
-            ds <- data.frame(dataset()) #dataSubset
-            
-            #higher allowed variance should produce fewer results
-            allowedVariance <- as.numeric(input$variance)/100
-            
-            crit <- c(dFact(), dC()) #add factor + GroupBy
-            
-            #get mean/average by by factor + GroupBy
-            ds.factor.avg <- my.fun(ds, crit, dT())
-            
-            ds.factor.M <- filter(ds.factor.avg,Gender=='M')
-            colnames(ds.factor.M) <- c("Gender","JobTitle","meanM")
-            #colnames(ds.factor.M) <- c("Gender","JobTitle","YrsOfExperience","meanM")
-            ds.factor.F <- filter(ds.factor.avg,Gender=='F')
-            colnames(ds.factor.F) <- c("Gender","JobTitle","meanF")
-            #colnames(ds.factor.F) <- c("Gender","JobTitle","YrsOfExperience","meanF")
-            
-            #merge and get subset of data filter by allowed variance
-            ds.factor.M<-ds.factor.M[,2:3] #remove Gender
-            ds.factor.F<-ds.factor.F[,2:3]
-            #ds.factor <- merge(ds.factor.F, ds.factor.M, by=c("JobTitle","YrsOfExperience"))
-            ds.factor <- merge(ds.factor.M, ds.factor.F, by=c("JobTitle"))
-            diffPct <- (ds.factor$meanM-ds.factor$meanF)/ds.factor$meanM
-            ds.factor$difference <- diffPct
-            ds.factor.var <- filter(ds.factor, abs(diffPct)>allowedVariance)
-            
       })
       
       output$table <- renderDataTable({
@@ -150,7 +158,7 @@ shinyServer(function(input, output, session) {
             ds.factor.var <- processData() 
             ds.factor.var$difference <- ds.factor.var$difference*100
             
-            p <- ggplot(ds.factor.var, aes(JobTitle, difference,color=difference))
+            p <- ggplot(ds.factor.var, aes(Job, difference,color=difference))
             p <- p + geom_point()
             p <- p + scale_color_gradientn(colours = c("red","yellow","#11BB11","yellow","red"))
             p <- p + guides(color=guide_legend(title="% Difference"))
@@ -160,6 +168,7 @@ shinyServer(function(input, output, session) {
             p
       }, height=400)
       
+      #table created by user dragging mouse over datapoints in plot
       output$click_info <- renderPrint({
             
             ds.factor.var <- data.frame(processData())
@@ -204,7 +213,7 @@ shinyServer(function(input, output, session) {
                         
                         # Knit document, passing in `params` and eval it in a child 
                         # of the global environment to isolate document from app
-                        params <- list(n = 10)
+                        params <- list(n=processData()) #example list(n = 10)
                         rmarkdown::render(tempReport, output_file = file,
                                           params = params,
                                           envir = new.env(parent = globalenv())

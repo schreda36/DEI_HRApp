@@ -1,10 +1,9 @@
 #library(markdown)
 
 shinyUI(
-      navbarPage("Navbar!",
+      navbarPage("=Opportunity!",
                  
-                   tabPanel("Factor",
-                            
+                   tabPanel("Compare Comp",
                             tags$head(
                                   tags$style(HTML("
                                           
@@ -16,41 +15,57 @@ shinyUI(
                                           body { background-color: #fff; }
 
                                           .selectize-control { margin-top: 1px }
-                                          .selectize-input { font-size: 14px; }
-                                          .selectize-control.label { font-size: 22px; }
-                                          #.selectize-dropdown-content {max-height: 400px; }
-                                          #.selectize-control.single{ display: table-cell; text-align: center; vertical-align: middle; } .form-group { display: table-row;}
-                                                  
+                                          .selectize-input { font-size: 13px; }
+                                          .selectize-control.label { font-size: 20px; }
+                                          .selectize-dropdown-content { font-size: 13px; }
+                                          #sidebar {background-color: #E1ECF7; align: center;}
                                     "))
                             ),
                             sidebarLayout(
-                                  sidebarPanel(
+                                  sidebarPanel(id="sidebar",
                                         selectizeInput("DataType", "Data to analyze:",
-                                                     c("Salary"="Salary", "Total Compensation"="TotalCompensation")
+                                                     c("Total Compensation"="TotalCompensation",
+                                                       "Salary"="Salary", 
+                                                       "Bonus"="Bonus",
+                                                       "LTI"="LTI",
+                                                       "Data X"="DataX"
+                                                       ),selected="Salary"
                                         ),
-                                        selectizeInput("FactorType", "Determining factor:",
-                                                    c("Gender"="Gender", "Ethnicity"="Ethnicity",
-                                                      "Religion"="Religion","Age"="Age","Factor X"="FactorX")
+                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
+                                        selectizeInput("FactorType", "Split data by:",
+                                                    c("Age"="Age Group",
+                                                      "Disability"="Disability", 
+                                                      "Ethnicity"="Ethnicity",
+                                                      "Gender"="Gender", 
+                                                      "Religion"="Religion",
+                                                      "Factor X"="FactorX"
+                                                      ),selected="Gender"
                                         ),
+                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
                                         checkboxGroupInput("GroupBy", "Group people by:",
-                                                           c("Job Title" = "JobTitle",
+                                                           c("Job" = "Job",
                                                              "Years of Experience" = "YrsOfExperience",
-                                                             "Years of School" = "YrsSchool",
-                                                             "Prior Performance" = "Performance"
-                                                           ),selected="JobTitle"),
+                                                             "Years of School" = "YrsOfSchool",
+                                                             "Prior Performance" = "PriorPerformance",
+                                                             "Group X" = "Group X"
+                                                             ),selected="Job"),
+                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
                                         selectizeInput("FilterType", "Filter by:",
                                                     c("Country" = "Country",
                                                       "Location" = "Location",
                                                       "Organization" = "Organization",
-                                                      "Manager" = "Manager")
+                                                      "Manager" = "Manager"),selected="Country"
                                         ),
-                                        selectizeInput("Filter", "", choices = "All"),
+                                        selectizeInput("Filter", NULL, choices = "All"),
+                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
                                         sliderInput("variance", "Display differences > than +/-:",
                                                     min=2.5,max=20.0,round=TRUE,
                                                     step = .5, post="%",
                                                     value=10, width=200
                                         ),
-                                        actionButton("goButton", "Go!"),
+                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
+                                        actionButton("goButton", "Go!", style="align: center"),
+                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
                                         radioButtons("downloadType", "Download file type:",
                                                     choices = c("csv", "pdf", "tsv")),
                                         downloadButton('downloadData', 'Download')
@@ -74,9 +89,9 @@ shinyUI(
                             )
                    )
                    # ,tabPanel("Summary",
-                   #          verbatimTextOutput("summary")
-                   # ),
-                   # navbarMenu("More",
+                   #         verbatimTextOutput("summary")
+                   # )
+                   # ,navbarMenu("More",
                    #            tabPanel("Table",
                    #                     verbatimTextOutput("summary")
                    #            ),
@@ -99,4 +114,5 @@ shinyUI(
                    #                     )
                    #            )
                    # )
+                 
 ))
