@@ -1,5 +1,5 @@
 ---
-title: "=Opportunity!"
+title: "=Opportunity"
 output: pdf_document
 params:
   n: NA
@@ -12,16 +12,16 @@ library(ggplot2)
 #plot(params$n)
 #render plot
 ds.factor.var <- data.frame(params$n)
-ds.factor.var$difference <- ds.factor.var$difference*100
-            
-p <- ggplot(ds.factor.var, aes(Job, difference,color=difference))
-p <- p + geom_point()
-p <- p + scale_color_gradientn(colours = c("red","yellow","#11BB11","yellow","red"))
+ds.factor.var$Difference <- ds.factor.var$Difference*100
+  
+p <- ggplot(ds.factor.var, aes(Job, Difference,color=Difference))
+p <- p + geom_point(size=3)
+p <- p + scale_color_gradientn(colours = c("red","#DDBB11","#11BB11","#DDBB11","red"))
 p <- p + guides(color=guide_legend(title="% Difference"))
 p <- p + theme(axis.text.x = element_text(angle = 60, hjust = 1))
 p <- p + labs(title =" ", x = "", y = "% Difference")
 p
-
-#render table            
+ 
+# #render table            
 params$n
 ```

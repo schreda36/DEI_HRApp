@@ -1,9 +1,9 @@
 #library(markdown)
 
 shinyUI(
-      navbarPage("=Opportunity!",
+      navbarPage(div(style="color:#2255BB; font-style:italic; font-weight:bold", "=Opportunity"),
                  
-                   tabPanel("Compare Comp",
+                   tabPanel("Compare Compensation",
                             tags$head(
                                   tags$style(HTML("
                                           
@@ -18,63 +18,63 @@ shinyUI(
                                           .selectize-input { font-size: 13px; }
                                           .selectize-control.label { font-size: 20px; }
                                           .selectize-dropdown-content { font-size: 13px; }
+                                          #.TblAlign {text-align:right;}
+                                          .alignRight {color: #2255CC; margin-right:50px; text-align:right}
                                           #sidebar {background-color: #E1ECF7; align: center;}
                                     "))
                             ),
                             sidebarLayout(
                                   sidebarPanel(id="sidebar",
-                                        selectizeInput("DataType", "Data to analyze:",
-                                                     c("Total Compensation"="TotalCompensation",
-                                                       "Salary"="Salary", 
-                                                       "Bonus"="Bonus",
-                                                       "LTI"="LTI",
-                                                       "Data X"="DataX"
-                                                       ),selected="Salary"
-                                        ),
+                                       checkboxGroupInput("GroupBy", "Group people by:",
+                                                     c("Job" = "Job",
+                                                        "Years of Experience" = "YrsOfExperience",
+                                                        "Years of School" = "YrsOfSchool",
+                                                        "Prior Performance" = "PriorPerformance",
+                                                        "Group X" = "Group X"
+                                                        ),selected="Job"),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
                                         selectizeInput("FactorType", "Split data by:",
-                                                    c("Age"="Age Group",
+                                                    c("Age"="Age",
                                                       "Disability"="Disability", 
                                                       "Ethnicity"="Ethnicity",
                                                       "Gender"="Gender", 
-                                                      "Religion"="Religion",
                                                       "Factor X"="FactorX"
                                                       ),selected="Gender"
                                         ),
-                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        checkboxGroupInput("GroupBy", "Group people by:",
-                                                           c("Job" = "Job",
-                                                             "Years of Experience" = "YrsOfExperience",
-                                                             "Years of School" = "YrsOfSchool",
-                                                             "Prior Performance" = "PriorPerformance",
-                                                             "Group X" = "Group X"
-                                                             ),selected="Job"),
-                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        selectizeInput("FilterType", "Filter by:",
+                                       tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
+                                       selectizeInput("DataType", "Data to analyze:",
+                                                      c("Total Compensation"="TotalCompensation",
+                                                        "Salary"="Salary", 
+                                                        "Merit Increase"="MeritInc",
+                                                        "Promotion Increase"="PromoInc",
+                                                        "Bonus"="BonusAmt",
+                                                        "Stock"="StockAmt",
+                                                        "Data X"="DataX"
+                                                      ),selected="Salary"
+                                       ),
+                                       tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
+                                       selectizeInput("FilterType", "Filter by:",
                                                     c("Country" = "Country",
                                                       "Location" = "Location",
-                                                      "Organization" = "Organization",
-                                                      "Manager" = "Manager"),selected="Country"
+                                                      "Organization" = "Organization"
+                                                      ),selected="Country"
                                         ),
-                                        selectizeInput("Filter", NULL, choices = "All"),
+                                        selectizeInput("Filter", NULL, choices="", selected = "USA"),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        sliderInput("variance", "Display differences > than +/-:",
+                                        sliderInput("Difference", "Display differences > than +/-:",
                                                     min=2.5,max=20.0,round=TRUE,
                                                     step = .5, post="%",
                                                     value=10, width=200
                                         ),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        actionButton("goButton", "Go!", style="align: center"),
-                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
+                                        div(style="display:inline-block",actionButton("goButton", "Analyze", style="align: center")),
+                                        div(style="display:inline-block",downloadButton('downloadData', 'Download')),
                                         radioButtons("downloadType", "Download file type:",
-                                                    choices = c("csv", "pdf", "tsv")),
-                                        downloadButton('downloadData', 'Download')
+                                                     choices = c("csv", "pdf", "text"), inline=T)
                                   ,width=3),
                                   mainPanel(
                                         tabsetPanel(type = "tabs", 
                                                     tabPanel("Table", dataTableOutput("table")),
-                                                    #tabPanel("Table", textOutput("table")),
-                                                    tabPanel("Summary", verbatimTextOutput("summary")), 
                                                     tabPanel("Plot", 
                                                              fluidRow(column(width = 12,
                                                                              plotOutput("plot", click = "plot_click", brush=brushOpts(id="plot_brush",resetOnNew=F))
@@ -82,15 +82,16 @@ shinyUI(
                                                              fluidRow(column(width = 12,
                                                                              verbatimTextOutput("click_info")
                                                              ))
-                                                    )
+                                                    ),
+                                                    tabPanel("Detail", verbatimTextOutput("Detail"))
                                                     
                                         )
                                   ,width=9)
                             )
                    )
-                   # ,tabPanel("Summary",
-                   #         verbatimTextOutput("summary")
-                   # )
+                   ,tabPanel("Compare Resources",
+                            verbatimTextOutput("summary")
+                   )
                    # ,navbarMenu("More",
                    #            tabPanel("Table",
                    #                     verbatimTextOutput("summary")
