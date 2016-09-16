@@ -2,7 +2,6 @@ suppressPackageStartupMessages(c(library(shiny),library(RMySQL),library(tm),libr
 
 
 #source("global.R")
-setwd("C:/Users/schre/DataScience/wd/EEO/app")
 
 
 shinyServer(function(input, output, session) {
@@ -17,6 +16,7 @@ shinyServer(function(input, output, session) {
       observe({
             updateSelectizeInput(session, 'Filter', choices = as.character(filterChoice()), server = TRUE)
       })
+      
       
       #Data Type
       dType <- reactive ({
@@ -34,16 +34,7 @@ shinyServer(function(input, output, session) {
       
       #Data Determining Factor
       dFact <- reactive ({
-            
-            #might need block below if we transform GroupBy inputs
-            #if(input$FactorType=="Gender"){
-            #      dFact <- c("Gender") }
-            #else if(input$FactorType=="Ethnicity") { only need if/else when changing name
-             #     dFact <- c("Ethnicity") }
-            #else {
-            #      dFact <- input$FactorType
-            #}
-            
+            # Factor columns must be identical to column names in datasource
             dFact <- input$FactorType      
             dFact
       })
@@ -51,28 +42,13 @@ shinyServer(function(input, output, session) {
       #Data Criteria 'Group By'
       dGroupBy <- reactive ({
             # GroupBy columns must be identical to column names in datasource
-            
-            #might need block below if we transform GroupBy inputs
-            # dC <- NULL
-            # if(input$GroupBy=="Job"){
-            #       dC <- c("Job") }
-            # if(input$GroupBy=="YrsOfExperience") {
-            #       dC <- append(dC, "YrsOfExperience") }
             dC <- input$GroupBy
             dC
       })
       
       #Data Filter
       dFilt <- reactive ({
-
-            #might need block below if we transform FilterType inputs
-            # if(input$FilterType=="Country") {
-            #       if(input$Filter=="USA"){
-            #             dFilt <- c("USA") }
-            #       else if(input$Filter=="ESP") {
-            #             dFilt <- c("ESP") }
-            # }
-            
+            # Filter columns must be identical to column names in datasource
             dFilt <- input$Filter
             dFilt
       })
@@ -109,15 +85,22 @@ shinyServer(function(input, output, session) {
             
             ds.factor.var <- merge(ds.factor.FactorAvg, ds.factor.GrpAvg, by=dGroupBy())
             #calc difference
-            diffPct <- (ds.factor.var$DataTypeMean.y-ds.factor.var$DataTypeMean.x)/ds.factor.var$DataTypeMean.x
+            diffPct <- (ds.factor.var$DataTypeMean.x-ds.factor.var$DataTypeMean.y)/ds.factor.var$DataTypeMean.y
             ds.factor.var$Difference <- diffPct
             #filter out allowable Differences
             ds.factor.var <- filter(ds.factor.var, abs(diffPct)>allowedDifference)
       })
       
     
-
-      #---------------- Render/Download Table and Plots -------------------
+      detailDataset <- reactive({
+            ds <- read.csv("./data/SampleData.csv")
+            ds <- ds[ds[input$FilterType]==eval(dFilt()),] #Filter
+            dCols <- c("EmployeeID", "ManagerID", dType(), dFact(), dGroupBy()) #data type, factor and group by columns
+            dataSubset <- subset(ds, select=dCols) #keep only columns of interest
+            dataSubset
+      })
+      
+      #-------------------- Render Table ------------------------
       
       #Table Header
       tH <- function(ds) {
@@ -126,18 +109,37 @@ shinyServer(function(input, output, session) {
             
             tH <- paste("Group = ", input$GroupBy)
             tH <- append(tH, input$FactorType)
-            tH <- append(tH, paste("Group Avg ", input$DataType))
             tH <- append(tH, paste(input$FactorType, " Avg ", input$DataType))
+            tH <- append(tH, paste("Group Avg ", input$DataType))
             tH <- append(tH, paste("% Difference"))
             
-            #tH <- colnames(ds) #default column names
+            #tH <- colnames(ds) #use default column names
             tH
       }
       
       output$table <- renderDataTable({
             #alightRight is 0-based css class
             expr=dataOutputTable()
-      }, options =list(aoColumnDefs = list(list(sClass="alignRight",aTargets=c(list(-1),list(-2),list(-3)))) ))
+            }
+            ,options = list(aoColumnDefs = list(list(sClass="alignRight",aTargets=c(list(-1),list(-2),list(-3)))) 
+                            # ,initComplete = JS(
+                            #       'function(table) {
+                            #       table.on("click.dt", "tr", function() {
+                            #       Shiny.onInputChange("rows", table.row( this ).index());
+                            #       tabs = $(".tabbable .nav.nav-tabs li a");
+                            #       $(tabs[1]).click();
+                            #       });
+                            #   }')
+                            )
+            ,escape = FALSE
+            # Shiny.onInputChange('rows', table.row(this).index()); #will pass index to what is shown in Table
+            ,callback = "function(table) {
+                  table.on('click.dt', 'tr', function() {
+                   Shiny.onInputChange('rows', table.row(this).data() ); 
+                  tabs = $('.tabbable .nav.nav-tabs li a');
+                  $(tabs[2]).click();
+                  });}"
+      )
 
       
       dataOutputTable <- reactive({      
@@ -147,6 +149,7 @@ shinyServer(function(input, output, session) {
             if (input$goButton > 0) {
                   
                   ds.factor.var <- processData()
+                  ds.factor.var[,1] <- paste("", ds.factor.var[,1], "")
                   ds.factor.var$Difference <- percent(ds.factor.var$Difference)
                   ds.factor.var$DataTypeMean.x <-dollar_format()(ds.factor.var$DataTypeMean.x)
                   ds.factor.var$DataTypeMean.y <-dollar_format()(ds.factor.var$DataTypeMean.y)
@@ -161,6 +164,9 @@ shinyServer(function(input, output, session) {
             
       })
       
+      
+      #---------------------- Render Plots -------------------------
+      
       plot.range <- reactiveValues(x = NULL, y = NULL)
       
       output$plot <- renderPlot({
@@ -169,7 +175,7 @@ shinyServer(function(input, output, session) {
             
             ds.factor.var <- processData()
             
-            validate(need(nrow(ds.factor.var)>0, "\n\nNo Data. Please make the appropriate adjustments."))
+            validate(need(nrow(ds.factor.var)>0, "\n\nNo data returned. Please make the appropriate adjustments."))
             
             ds.factor.var$Difference <- ds.factor.var$Difference*100
             maxY <- max(abs(ds.factor.var[,"Difference"]))+5 #to center around 0
@@ -185,7 +191,7 @@ shinyServer(function(input, output, session) {
       }, height=400)
       
       #table created by user dragging mouse over datapoints in plot
-      output$click_info <- renderPrint({
+      output$click_info <- renderDataTable({
             
             ds.factor.var <- data.frame(processData())
             ds.factor.var$Difference <- round(ds.factor.var$Difference*100,2)
@@ -213,7 +219,50 @@ shinyServer(function(input, output, session) {
                   ds.factor.var
             }
          
+      }, options = list(searching = FALSE,paging = FALSE))
+      
+      
+      #------------------ Render Detail Table/Plot ---------------------
+      
+      output$detail <- renderPrint({
+            validate(need(input$GroupBy != "", "\n\nPlease select a value for 'Group people by'"))
+
+            detailColumn1 <- trimws(input$rows[1])
+            
+            #filter ds by Group and Split variables, don't use ds.factor.var as we need individual data, not grouped
+            if(is.null(input$rows[1])){
+                 c("Please select a record from the Table tab.")
+            }else{
+                  ds <- detailDataset() #get basic dataset
+                  ds <- ds[ds$Job==detailColumn1,]
+                  ds <- ds[order(ds$EmployeeID),]
+                  #validate(need(nrow(ds)>0, "\n\nNo data returned. Please make the appropriate adjustments."))
+                  ds
+            }
       })
+
+      output$detailHist <- renderPlot({
+            validate(need(input$GroupBy != "", "\n\nPlease select a value for 'Group people by'"))
+            
+            detailColumn1 <- trimws(input$rows[1])
+            
+            #filter ds by Group and Split variables, don't use ds.factor.var as we need individual data, not grouped
+            if(is.null(input$rows[1])){
+                  c("Please select a record from the Table tab.")
+            }else{
+                  ds <- detailDataset() #get basic dataset
+                  ds <- ds[ds$Job==detailColumn1,]
+                  ds <- ds[order(ds$EmployeeID),]
+                  #validate(need(nrow(ds)>0, "\n\nNo data returned. Please make the appropriate adjustments."))
+                  col <- input$DataType
+                  hist(ds$col)
+            }
+      })
+      
+      
+      
+
+      #---------------- Download Table and Plots -------------------
       
       # downloadHandler() takes two arguments both functions.The content function
       # is passed a filename and it should write out data to that filename.
@@ -233,7 +282,7 @@ shinyServer(function(input, output, session) {
                         
                         # Knit document, passing in `params` and eval it in a child 
                         # of the global environment to isolate document from app
-                        params <- list(n=processData())
+                        params <- list(dataIn=processData())
                         
                         rmarkdown::render(tempReport, output_file = file,
                                           params = params,
@@ -241,7 +290,7 @@ shinyServer(function(input, output, session) {
                         )
                   }
                   else {
-                        sep <- switch(input$downloadType, "csv" = ",", "tsv" = "\t")
+                        sep <- switch(input$downloadType, "csv" = ",", "text" = "\t")
                         write.table(dataOutputTable(), file, sep = sep, row.names = FALSE) 
                   }            
                   

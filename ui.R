@@ -1,9 +1,9 @@
 #library(markdown)
 
 shinyUI(
-      navbarPage(div(style="color:#2255BB; font-style:italic; font-weight:bold", "=Opportunity"),
+      navbarPage(div(style="color:#17A955; font-style:italic; font-weight:bold", "Vayam Analytics"),
                  
-                   tabPanel("Compare Compensation",
+                   tabPanel("Compensation",
                             tags$head(
                                   tags$style(HTML("
                                           
@@ -12,14 +12,14 @@ shinyUI(
                                                 line-height: 1.1;
                                                 color: #48ca3b; }
                                                   
-                                          body { background-color: #fff; }
+                                          body { background-color: #ffffff; }
 
                                           .selectize-control { margin-top: 1px }
                                           .selectize-input { font-size: 13px; }
                                           .selectize-control.label { font-size: 20px; }
                                           .selectize-dropdown-content { font-size: 13px; }
                                           #.TblAlign {text-align:right;}
-                                          .alignRight {color: #2255CC; margin-right:50px; text-align:right}
+                                          .alignRight {color: #1774D4; margin-right:50px; text-align:right}
                                           #sidebar {background-color: #E1ECF7; align: center;}
                                     "))
                             ),
@@ -30,10 +30,10 @@ shinyUI(
                                                         "Years of Experience" = "YrsOfExperience",
                                                         "Years of School" = "YrsOfSchool",
                                                         "Prior Performance" = "PriorPerformance",
-                                                        "Group X" = "Group X"
+                                                        "Group X" = "GroupX"
                                                         ),selected="Job"),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        selectizeInput("FactorType", "Split data by:",
+                                        selectizeInput("FactorType", "Split groups by:",
                                                     c("Age"="Age",
                                                       "Disability"="Disability", 
                                                       "Ethnicity"="Ethnicity",
@@ -62,13 +62,14 @@ shinyUI(
                                         selectizeInput("Filter", NULL, choices="", selected = "USA"),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
                                         sliderInput("Difference", "Display differences > than +/-:",
-                                                    min=2.5,max=20.0,round=TRUE,
+                                                    min=0.0,max=20.0,round=TRUE,
                                                     step = .5, post="%",
                                                     value=10, width=200
                                         ),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        div(style="display:inline-block",actionButton("goButton", "Analyze", style="align: center")),
-                                        div(style="display:inline-block",downloadButton('downloadData', 'Download')),
+                                        div(style="display:inline-block; margin-top: 5px",actionButton("goButton", "Analyze", style="align: center")),
+                                        div(style="display:inline-block; margin-top: 5px",downloadButton('downloadData', 'Download')),
+                                        tags$hr(style="height: 1px; margin: 5px;"),
                                         radioButtons("downloadType", "Download file type:",
                                                      choices = c("csv", "pdf", "text"), inline=T)
                                   ,width=3),
@@ -77,19 +78,26 @@ shinyUI(
                                                     tabPanel("Table", dataTableOutput("table")),
                                                     tabPanel("Plot", 
                                                              fluidRow(column(width = 12,
-                                                                             plotOutput("plot", click = "plot_click", brush=brushOpts(id="plot_brush",resetOnNew=F))
+                                                                        plotOutput("plot", click = "plot_click", brush=brushOpts(id="plot_brush",resetOnNew=F))
                                                              )),
                                                              fluidRow(column(width = 12,
-                                                                             verbatimTextOutput("click_info")
+                                                                        dataTableOutput("click_info")
                                                              ))
                                                     ),
-                                                    tabPanel("Detail", verbatimTextOutput("Detail"))
+                                                    tabPanel("Detail", 
+                                                             fluidRow(column(width = 12,
+                                                                        verbatimTextOutput("detail")
+                                                             )),
+                                                             fluidRow(column(width = 12,
+                                                                        plotOutput("detailHist")
+                                                             ))
+                                                    )
                                                     
                                         )
                                   ,width=9)
                             )
                    )
-                   ,tabPanel("Compare Resources",
+                   ,tabPanel("Employees",
                             verbatimTextOutput("summary")
                    )
                    # ,navbarMenu("More",

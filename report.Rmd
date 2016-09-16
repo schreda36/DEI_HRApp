@@ -1,17 +1,17 @@
 ---
 title: "=Opportunity"
-output: pdf_document
+output: pdf_document #output: word_document
 params:
-  n: NA
+  dataIn: NA
 ---
 
 
 ```{r echo=FALSE}
 #Your plot and table should display below
 library(ggplot2)
-#plot(params$n)
+#plot(params$dataIn)
 #render plot
-ds.factor.var <- data.frame(params$n)
+ds.factor.var <- data.frame(params$dataIn)
 ds.factor.var$Difference <- ds.factor.var$Difference*100
   
 p <- ggplot(ds.factor.var, aes(Job, Difference,color=Difference))
@@ -23,5 +23,4 @@ p <- p + labs(title =" ", x = "", y = "% Difference")
 p
  
 # #render table            
-params$n
-```
+params$dataIn
