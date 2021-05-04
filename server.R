@@ -198,7 +198,7 @@ shinyServer(function(input, output, session) {
             
             #for ggplot xmin/xmax will be the x-axis grid line #
             #ymin/ymax will equal the y (% Difference) values
-            validate(need(input$plot_brush!="", "Click and drag mouse over data-points for more information."))
+            validate(need(input$plot_brush!="", ">>>FOR MORE INFO CLICK AND DRAG MOUSE OVER DATA-POINTS IN GRAPH<<<"))
             brush <- input$plot_brush
             plot.range$x <- c(ceiling(brush$xmin):floor(brush$xmax))
             ymin <- brush$ymin
@@ -224,6 +224,7 @@ shinyServer(function(input, output, session) {
       
       #------------------ Render Detail Table/Plot ---------------------
       
+      output$detail2 <- renderPrint({"Click Output to Table & Detail Tabs button at bottom of control panel."})
       output$detail <- renderPrint({
             validate(need(input$GroupBy != "", "\n\nPlease select a value for 'Group people by'"))
 
@@ -231,7 +232,7 @@ shinyServer(function(input, output, session) {
             
             #filter ds by Group and Split variables, don't use ds.factor.var as we need individual data, not grouped
             if(is.null(input$rows[1])){
-                 c("Please select a record from the Table tab.")
+                 c("Click on a row within the Table tab to show Detail records here.")
             }else{
                   ds <- detailDataset() #get basic dataset
                   ds <- ds[ds$Job==detailColumn1,]
@@ -248,14 +249,14 @@ shinyServer(function(input, output, session) {
             
             #filter ds by Group and Split variables, don't use ds.factor.var as we need individual data, not grouped
             if(is.null(input$rows[1])){
-                  c("Please select a record from the Table tab.")
+                  c("Click on a row within the Table tab to show Detail records here.")
             }else{
                   ds <- detailDataset() #get basic dataset
                   ds <- ds[ds$Job==detailColumn1,]
                   ds <- ds[order(ds$EmployeeID),]
                   #validate(need(nrow(ds)>0, "\n\nNo data returned. Please make the appropriate adjustments."))
                   col <- input$DataType
-                  hist(ds$col)
+                  #histogram has a numeric error hist(ds$col)
             }
       })
       
