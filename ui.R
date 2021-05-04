@@ -1,7 +1,7 @@
 #library(markdown)
 
 shinyUI(
-      navbarPage(div(style="color:#17A955; font-style:italic; font-weight:bold", "Vayam Analytics"),
+      navbarPage(div(style="color:#005066; font-style:italic; font-weight:bold", "Vayam EEOC"),
                  
                    tabPanel("Compensation",
                             tags$head(
@@ -25,15 +25,15 @@ shinyUI(
                             ),
                             sidebarLayout(
                                   sidebarPanel(id="sidebar",
-                                       checkboxGroupInput("GroupBy", "Group people by:",
+                                       checkboxGroupInput("GroupBy", "I want to group people by:",
                                                      c("Job" = "Job",
-                                                        "Years of Experience" = "YrsOfExperience",
-                                                        "Years of School" = "YrsOfSchool",
+                                                        "Experience Level" = "ExperienceLevel",
+                                                        "Degree" = "Degree",
                                                         "Prior Performance" = "PriorPerformance",
                                                         "Group X" = "GroupX"
                                                         ),selected="Job"),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        selectizeInput("FactorType", "Split groups by:",
+                                        selectizeInput("FactorType", "And analyze each group by:",
                                                     c("Age"="Age",
                                                       "Disability"="Disability", 
                                                       "Ethnicity"="Ethnicity",
@@ -42,7 +42,7 @@ shinyUI(
                                                       ),selected="Gender"
                                         ),
                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                       selectizeInput("DataType", "Data to analyze:",
+                                       selectizeInput("DataType", "Using their:",
                                                       c("Total Compensation"="TotalCompensation",
                                                         "Salary"="Salary", 
                                                         "Merit Increase"="MeritInc",
@@ -53,7 +53,7 @@ shinyUI(
                                                       ),selected="Salary"
                                        ),
                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                       selectizeInput("FilterType", "Filter by:",
+                                       selectizeInput("FilterType", "For people in:",
                                                     c("Country" = "Country",
                                                       "Location" = "Location",
                                                       "Organization" = "Organization"
@@ -61,21 +61,20 @@ shinyUI(
                                         ),
                                         selectizeInput("Filter", NULL, choices="", selected = "USA"),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        sliderInput("Difference", "Display outliers > than +/-:",
+                                        sliderInput("Difference", "Adjust to eliminate people within x% of the group avg:",
                                                     min=0.0,max=20.0,round=TRUE,
                                                     step = .5, post="%",
                                                     value=10, width=200
                                         ),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        div(style="display:inline-block; margin-top: 5px",actionButton("goButton", "Analyze", style="align: center")),
-                                        div(style="display:inline-block; margin-top: 5px",downloadButton('downloadData', 'Download')),
+                                        div(style="display:inline-block; margin-top: 5px",actionButton("goButton", "Output to Table & Detail Tabs", style="align: center")),
                                         tags$hr(style="height: 1px; margin: 5px;"),
-                                        radioButtons("downloadType", "Download file type:",
-                                                     choices = c("csv", "pdf", "text"), inline=T)
-                                  ,width=3),
+                                        tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),                                        
+                                        radioButtons("downloadType", "\n",choices = c("csv", "pdf"),inline=T),
+                                        div(style="display:inline-block; margin-top: 0px;",downloadButton('downloadData', 'Download Plot')),
+                                       width=3),
                                   mainPanel(
                                         tabsetPanel(type = "tabs", 
-                                                    tabPanel("Table", dataTableOutput("table")),
                                                     tabPanel("Plot", 
                                                              fluidRow(column(width = 12,
                                                                         plotOutput("plot", click = "plot_click", brush=brushOpts(id="plot_brush",resetOnNew=F))
@@ -84,6 +83,16 @@ shinyUI(
                                                                         dataTableOutput("click_info")
                                                              ))
                                                     ),
+                                                    #tabPanel("Table", dataTableOutput("table"))
+                                                    tabPanel("Table", 
+                                                             fluidRow(column(width = 12,
+                                                                             verbatimTextOutput("detail2")
+                                                             )),
+                                                             fluidRow(column(width = 12,
+                                                                             dataTableOutput("table")
+                                                             ))
+                                                    )
+                                                    ,
                                                     tabPanel("Detail", 
                                                              fluidRow(column(width = 12,
                                                                         verbatimTextOutput("detail")
@@ -97,7 +106,7 @@ shinyUI(
                                   ,width=9)
                             )
                    )
-                   ,tabPanel("Employees",
+                   ,tabPanel("TA-coming soon",
                             verbatimTextOutput("summary")
                    )
                    # ,navbarMenu("More",
@@ -124,4 +133,5 @@ shinyUI(
                    #            )
                    # )
                  
-))
+                 ,div(style="color:#ED7933; font-style:italic; font-weight:bold", "DEMO DATA")            
+    ))
