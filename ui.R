@@ -61,7 +61,7 @@ shinyUI(
                                         ),
                                         selectizeInput("Filter", NULL, choices="", selected = "USA"),
                                         tags$hr(style="height: 1px; margin: 5px; border-color: #bbbbbb;"),
-                                        sliderInput("Difference", "Display differences > than +/-:",
+                                        sliderInput("Difference", "Display outliers > than +/-:",
                                                     min=0.0,max=20.0,round=TRUE,
                                                     step = .5, post="%",
                                                     value=10, width=200
@@ -115,7 +115,7 @@ shinyUI(
                    #                                  img(class="img-polaroid",
                    #                                      src=paste0("http://www.vayam-llc.com/wp-content/themes/Vayam%20LLC/images/vayam-logo-small.png")),
                    #                                  tags$small(
-                   #                                        "Copyright 2016 ",
+                   #                                        "Copyright 2021 ",
                    #                                        "Vayam LLC ",
                    #                                        a(href="http://www.vayam-llc.com")
                    #                                  )
